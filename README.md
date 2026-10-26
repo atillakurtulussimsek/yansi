@@ -62,3 +62,7 @@ Varsayılan çözünürlük: Mac'te ekranın nokta çözünürlüğü (ör. 14" 
 - Yalnızca yansıtma; dokunmatik kontrol ve ses yok.
 - Windows'ta döndürülmüş (dikey) ekranlar ve HDR açık ekranlar henüz düzgün desteklenmiyor.
 - Paketleme sırasında hata düzeltme (FEC) yok; yoğun kayıplı ağda donmalar olabilir.
+
+## Lisans
+
+MIT © 2026 Varkhe Digital — bkz. [LICENSE](LICENSE).
