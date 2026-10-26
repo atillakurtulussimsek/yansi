@@ -9,6 +9,8 @@ object Proto {
     const val MAGIC1: Byte = 0x53 // 'S'
 
     const val T_VIDEO = 0x01
+    const val T_FEC = 0x02
+    const val FEC_GROUP = 10
     const val T_IDR_REQ = 0x10
     const val T_KEEPALIVE = 0x11
     const val T_PING = 0x12

@@ -40,6 +40,12 @@ class StreamClient(
         val got = BooleanArray(count)
         var received = 0
         var lastLen = 0
+
+        // FEC: her FEC_GROUP veri paketine bir XOR eşlik paketi
+        val groups = (count + Proto.FEC_GROUP - 1) / Proto.FEC_GROUP
+        val parity = arrayOfNulls<ByteArray>(groups)
+        val parityLen = IntArray(groups)
+        val groupGot = IntArray(groups)
     }
 
     private val decoder = VideoDecoder(surface)
@@ -64,6 +70,7 @@ class StreamClient(
     private val frames = AtomicLong()
     private val drops = AtomicLong()
     private val idrRequests = AtomicLong()
+    private val recovered = AtomicLong()
     private val latSumNs = AtomicLong()
     private val latCount = AtomicLong()
     @Volatile private var rttNs = -1L
@@ -127,7 +134,8 @@ class StreamClient(
             if (len < 4 || buf[0] != Proto.MAGIC0 || buf[1] != Proto.MAGIC1) continue
             val from = pkt.socketAddress as? InetSocketAddress ?: continue
             when (buf[2].toInt() and 0xFF) {
-                Proto.T_VIDEO -> onVideo(buf, len, from)
+                Proto.T_VIDEO -> onVideo(buf, len, from, false)
+                Proto.T_FEC -> onVideo(buf, len, from, true)
                 Proto.T_PONG -> if (len >= 12 && from == sender) {
                     lastSeenMs = SystemClock.elapsedRealtime()
                     rttNs = System.nanoTime() - Proto.getLong(buf, 4)
@@ -136,7 +144,7 @@ class StreamClient(
         }
     }
 
-    private fun onVideo(buf: ByteArray, len: Int, from: InetSocketAddress) {
+    private fun onVideo(buf: ByteArray, len: Int, from: InetSocketAddress, fec: Boolean) {
         if (len < Proto.HEADER) return
         val now = SystemClock.elapsedRealtime()
 
@@ -150,14 +158,20 @@ class StreamClient(
 
         val key = (buf[3].toInt() and Proto.F_KEY) != 0
         val id = Proto.i32(buf, 4)
-        val frag = Proto.u16(buf, 8)
+        val frag = Proto.u16(buf, 8) // FEC paketinde: grup no
         val count = Proto.u16(buf, 10)
         val w = Proto.u16(buf, 12)
         val h = Proto.u16(buf, 14)
         val payloadLen = len - Proto.HEADER
 
-        if (count == 0 || frag >= count) return
-        if (frag < count - 1 && payloadLen != Proto.PAYLOAD) return
+        if (count == 0) return
+        if (fec) {
+            if (frag >= (count + Proto.FEC_GROUP - 1) / Proto.FEC_GROUP) return
+            if (payloadLen != 2 + Proto.PAYLOAD) return
+        } else {
+            if (frag >= count) return
+            if (frag < count - 1 && payloadLen != Proto.PAYLOAD) return
+        }
         if (haveLast && id - lastId <= 0) return // eski kare
 
         var slot: Slot? = null
@@ -167,18 +181,68 @@ class StreamClient(
             slot = Slot(id, count, key, w, h, System.nanoTime())
             slots.add(slot)
         }
-        if (slot.count != count || slot.got[frag]) return
+        if (slot.count != count) return
 
-        System.arraycopy(buf, Proto.HEADER, slot.data, frag * Proto.PAYLOAD, payloadLen)
-        slot.got[frag] = true
-        slot.received++
-        if (frag == count - 1) slot.lastLen = payloadLen
+        val group: Int
+        if (fec) {
+            group = frag
+            if (slot.parity[group] != null) return
+            slot.parity[group] = buf.copyOfRange(Proto.HEADER + 2, Proto.HEADER + 2 + Proto.PAYLOAD)
+            slot.parityLen[group] = Proto.u16(buf, Proto.HEADER)
+        } else {
+            if (slot.got[frag]) return
+            System.arraycopy(buf, Proto.HEADER, slot.data, frag * Proto.PAYLOAD, payloadLen)
+            slot.got[frag] = true
+            slot.received++
+            if (frag == count - 1) slot.lastLen = payloadLen
+            group = frag / Proto.FEC_GROUP
+            slot.groupGot[group]++
+        }
+        tryRecover(slot, group)
 
         if (slot.received == slot.count) {
             val done = slot
             slots.removeAll { it.id - done.id <= 0 }
             complete(done)
         }
+    }
+
+    /** Grupta tek paket eksikse ve eşlik paketi geldiyse eksik paketi XOR ile yeniden oluşturur. */
+    private fun tryRecover(s: Slot, g: Int) {
+        val first = g * Proto.FEC_GROUP
+        val last = minOf(first + Proto.FEC_GROUP, s.count)
+        val size = last - first
+        if (size < 2 || s.groupGot[g] != size - 1) return
+        val p = s.parity[g] ?: return
+
+        var missing = -1
+        for (i in first until last) if (!s.got[i]) { missing = i; break }
+        if (missing < 0) return
+
+        var lenX = s.parityLen[g]
+        for (i in first until last) {
+            if (i == missing) continue
+            lenX = lenX xor (if (i == s.count - 1) s.lastLen else Proto.PAYLOAD)
+        }
+        if (lenX <= 0 || lenX > Proto.PAYLOAD) return
+        if (missing != s.count - 1 && lenX != Proto.PAYLOAD) return
+
+        val d = s.data
+        val dst = missing * Proto.PAYLOAD
+        System.arraycopy(p, 0, d, dst, Proto.PAYLOAD)
+        for (i in first until last) {
+            if (i == missing) continue
+            val o = i * Proto.PAYLOAD
+            for (b in 0 until Proto.PAYLOAD) d[dst + b] = (d[dst + b].toInt() xor d[o + b].toInt()).toByte()
+        }
+        // Son parça kısa olabilir; artan baytlar sıfır kalmalı.
+        for (b in lenX until Proto.PAYLOAD) d[dst + b] = 0
+
+        s.got[missing] = true
+        s.received++
+        s.groupGot[g]++
+        if (missing == s.count - 1) s.lastLen = lenX
+        recovered.incrementAndGet()
     }
 
     private fun complete(s: Slot) {
@@ -220,7 +284,7 @@ class StreamClient(
 
     private fun requestIdr() {
         val now = SystemClock.elapsedRealtime()
-        if (now - lastIdrMs < 100) return
+        if (now - lastIdrMs < 250) return
         lastIdrMs = now
         idrRequests.incrementAndGet()
         sender?.let { send(Proto.control(Proto.T_IDR_REQ), it) }
@@ -271,8 +335,8 @@ class StreamClient(
         listener.onStats(
             String.format(
                 Locale.US,
-                "%dx%d  %.0f fps  %.1f Mbps\nalım→ekran %.1f ms  RTT %s\natılan kare %d  IDR isteği %d",
-                videoW, videoH, fps, mbps, lat, rtt, drops.get(), idrRequests.get(),
+                "%dx%d  %.0f fps  %.1f Mbps\nalım→ekran %.1f ms  RTT %s\natılan kare %d  IDR isteği %d  FEC kurtarma %d",
+                videoW, videoH, fps, mbps, lat, rtt, drops.get(), idrRequests.get(), recovered.get(),
             )
         )
     }

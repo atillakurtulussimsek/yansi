@@ -11,6 +11,7 @@ struct Options {
     var width: Int?
     var listDisplays = false
     var stats = false
+    var paceMbps = 250.0
 
     static func parse(_ args: [String]) -> Options {
         var o = Options()
@@ -41,6 +42,7 @@ struct Options {
             case "-w", "--width": o.width = nextInt()
             case "-l", "--list": o.listDisplays = true
             case "--stats": o.stats = true
+            case "--pace": o.paceMbps = max(0, nextDouble())
             case "-h", "--help": usage(0)
             default:
                 fputs("Bilinmeyen seçenek: \(args[i])\n\n", stderr)
@@ -67,6 +69,7 @@ func usage(_ code: Int32) -> Never {
           -b, --bitrate N    Bit hızı, Mbps (varsayılan 20)
           -s, --scale X      Nokta çözünürlüğüne göre ölçek (varsayılan 1.0; Retina keskinliği için 2)
           -w, --width N      Çıkış genişliği (ölçeği geçersiz kılar)
+              --pace N       Gönderim hızı sınırı, Mbps (varsayılan 250, 0 = sınırsız)
               --stats        Saniyede bir istatistik yaz
         """)
     exit(code)

@@ -108,7 +108,10 @@ final class FrameSender {
     private let dest: sockaddr_in
     private var frameId: UInt32 = 0
     private let packet: UnsafeMutablePointer<UInt8>
+    private let parity: UnsafeMutablePointer<UInt8>
     private var announced = false
+    private var nsPerByte = 0.0
+    private var nextNs: UInt64 = 0
 
     var onIdrRequest: (() -> Void)?
     var onReceiver: ((String) -> Void)?
@@ -128,6 +131,20 @@ final class FrameSender {
         setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &nosig, socklen_t(MemoryLayout<Int32>.size))
 
         packet = .allocate(capacity: Proto.headerSize + Proto.payloadSize)
+        parity = .allocate(capacity: Proto.headerSize + 2 + Proto.payloadSize)
+    }
+
+    /// Gönderim hızı sınırı (Mbps); 0 = sınırsız.
+    func setPacing(mbps: Double) {
+        nsPerByte = mbps > 0 ? 8000.0 / mbps : 0
+    }
+
+    private func pace(_ bytes: Int) {
+        guard nsPerByte > 0 else { return }
+        let now = DispatchTime.now().uptimeNanoseconds
+        if nextNs < now { nextNs = now }
+        while DispatchTime.now().uptimeNanoseconds < nextNs {}
+        nextNs += UInt64(Double(bytes) * nsPerByte)
     }
 
     /// VideoToolbox çıktı iş parçacığından çağrılır (tek iş parçacığı).
@@ -137,16 +154,43 @@ final class FrameSender {
         let id = frameId
         frameId &+= 1
 
+        let total = data.count
+        let parityBody = parity + Proto.headerSize + 2
+        let groups = (count + Proto.fecGroup - 1) / Proto.fecGroup
+
         data.withUnsafeBytes { (src: UnsafeRawBufferPointer) in
-            guard let base = src.baseAddress else { return }
-            for i in 0..<count {
-                let off = i * Proto.payloadSize
-                let len = min(Proto.payloadSize, data.count - off)
-                Proto.writeVideoHeader(
-                    packet, key: key, frameId: id, fragment: UInt16(i), count: UInt16(count),
-                    width: width, height: height)
-                memcpy(packet + Proto.headerSize, base + off, len)
-                sendRaw(packet, Proto.headerSize + len)
+            guard let raw = src.baseAddress else { return }
+            let base = raw.assumingMemoryBound(to: UInt8.self)
+            for g in 0..<groups {
+                let first = g * Proto.fecGroup
+                let last = min(count, first + Proto.fecGroup)
+                memset(parityBody, 0, Proto.payloadSize)
+                var lenXor: UInt16 = 0
+
+                for i in first..<last {
+                    let off = i * Proto.payloadSize
+                    let len = min(Proto.payloadSize, total - off)
+                    Proto.writeVideoHeader(
+                        packet, key: key, frameId: id, fragment: UInt16(i), count: UInt16(count),
+                        width: width, height: height)
+                    memcpy(packet + Proto.headerSize, base + off, len)
+                    for b in 0..<len { parityBody[b] ^= base[off + b] }
+                    lenXor ^= UInt16(len)
+                    pace(Proto.headerSize + len)
+                    sendRaw(packet, Proto.headerSize + len)
+                }
+
+                // Grup başına bir XOR eşlik paketi: tek kayıp alıcıda yeniden oluşturulur.
+                if last - first >= 2 {
+                    Proto.writeVideoHeader(
+                        parity, type: Proto.tFec, key: key, frameId: id, fragment: UInt16(g),
+                        count: UInt16(count), width: width, height: height)
+                    parity[Proto.headerSize] = UInt8(truncatingIfNeeded: lenXor >> 8)
+                    parity[Proto.headerSize + 1] = UInt8(truncatingIfNeeded: lenXor)
+                    let n = Proto.headerSize + 2 + Proto.payloadSize
+                    pace(n)
+                    sendRaw(parity, n)
+                }
             }
         }
     }

@@ -92,6 +92,7 @@ final class SenderApp: NSObject, SCStreamOutput, SCStreamDelegate {
         self.sender = sender
         self.encoder = encoder
 
+        sender.setPacing(mbps: opts.paceMbps)
         sender.onIdrRequest = { [weak self] in self?.requestKeyframe() }
         sender.onReceiver = { name in print("Alıcı bağlandı: \(name)") }
         sender.startControl()
@@ -141,7 +142,8 @@ final class SenderApp: NSObject, SCStreamOutput, SCStreamDelegate {
     private func requestKeyframe() {
         queue.async {
             let now = ProcessInfo.processInfo.systemUptime
-            guard now - self.lastForcedKey > 0.1 else { return }
+            // Kayıp anında anahtar kare yağmurunu önle
+            guard now - self.lastForcedKey > 0.3 else { return }
             self.lastForcedKey = now
             // Ekran durağansa yeni kare gelmez; son kareyi anahtar kare olarak yeniden kodla.
             if let pb = self.lastPixelBuffer {

@@ -11,6 +11,8 @@ constexpr uint8_t kMagic0 = 0x59;  // 'Y'
 constexpr uint8_t kMagic1 = 0x53;  // 'S'
 
 constexpr uint8_t kVideo = 0x01;
+constexpr uint8_t kFec = 0x02;
+constexpr int kFecGroup = 10;
 constexpr uint8_t kIdrRequest = 0x10;
 constexpr uint8_t kKeepalive = 0x11;
 constexpr uint8_t kPing = 0x12;

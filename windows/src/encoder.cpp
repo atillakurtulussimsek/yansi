@@ -155,10 +155,13 @@ bool MfEncoder::activate(bool hardwareOnly, LUID adapter) {
 bool MfEncoder::configure() {
     // Bazı kodlayıcılar bu ayarları ancak türler belirlenmeden önce kabul eder.
     setCodecBool(CODECAPI_AVLowLatencyMode, true);
-    if (FAILED(setCodecU32(CODECAPI_AVEncCommonRateControlMode, eAVEncCommonRateControlMode_LowDelayVBR))) {
-        setCodecU32(CODECAPI_AVEncCommonRateControlMode, eAVEncCommonRateControlMode_CBR);
+    // CBR + yaklaşık 2 karelik VBV tamponu: anahtar kareler de küçük kalır, ağda ani patlama olmaz.
+    if (FAILED(setCodecU32(CODECAPI_AVEncCommonRateControlMode, eAVEncCommonRateControlMode_CBR))) {
+        setCodecU32(CODECAPI_AVEncCommonRateControlMode, eAVEncCommonRateControlMode_LowDelayVBR);
     }
     setCodecU32(CODECAPI_AVEncCommonMeanBitRate, static_cast<UINT32>(bitrate_));
+    setCodecU32(CODECAPI_AVEncCommonMaxBitRate, static_cast<UINT32>(bitrate_));
+    setCodecU32(CODECAPI_AVEncCommonBufferSize, static_cast<UINT32>(bitrate_ / fps_ * 2));
     setCodecU32(CODECAPI_AVEncMPVGOPSize, static_cast<UINT32>(fps_ * 10));
     setCodecU32(CODECAPI_AVEncMPVDefaultBPictureCount, 0);
     setCodecU32(CODECAPI_AVEncCommonQualityVsSpeed, 30);

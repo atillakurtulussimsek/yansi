@@ -115,6 +115,7 @@ bool FrameSender::open(const std::string& ip, uint16_t port) {
     bind(sock_, reinterpret_cast<sockaddr*>(&local), sizeof local);
 
     packet_.resize(proto::kHeader + proto::kPayload);
+    parity_.resize(proto::kHeader + 2 + proto::kPayload);
     return true;
 }
 
@@ -129,26 +130,79 @@ void FrameSender::sendRaw(const uint8_t* p, int len) {
     }
 }
 
+static int64_t nowNs() {
+    static const int64_t freq = [] {
+        LARGE_INTEGER f;
+        QueryPerformanceFrequency(&f);
+        return static_cast<int64_t>(f.QuadPart);
+    }();
+    LARGE_INTEGER c;
+    QueryPerformanceCounter(&c);
+    return static_cast<int64_t>(static_cast<double>(c.QuadPart) * 1e9 / static_cast<double>(freq));
+}
+
+void FrameSender::setPacing(double mbps) { nsPerByte_ = mbps > 0 ? 8000.0 / mbps : 0.0; }
+
+// Kablolu bilgisayar büyük kareleri hat hızında patlatınca Wi-Fi erişim noktası paket düşürür.
+// Paketleri hedef hıza yayarak bunu önlüyoruz.
+void FrameSender::pace(size_t bytes) {
+    if (nsPerByte_ <= 0) return;
+    int64_t now = nowNs();
+    if (nextNs_ < now) nextNs_ = now;
+    while (nowNs() < nextNs_) YieldProcessor();
+    nextNs_ += static_cast<int64_t>(static_cast<double>(bytes) * nsPerByte_);
+}
+
+static void writeHeader(uint8_t* p, uint8_t type, bool key, uint32_t id, uint16_t frag, uint16_t count,
+                        uint16_t w, uint16_t h) {
+    p[0] = proto::kMagic0;
+    p[1] = proto::kMagic1;
+    p[2] = type;
+    p[3] = key ? proto::kFlagKey : 0;
+    proto::put32(p + 4, id);
+    proto::put16(p + 8, frag);
+    proto::put16(p + 10, count);
+    proto::put16(p + 12, w);
+    proto::put16(p + 14, h);
+}
+
 void FrameSender::sendFrame(const uint8_t* data, size_t len, bool key, uint16_t width, uint16_t height) {
     if (sock_ == INVALID_SOCKET || len == 0) return;
-    size_t count = (len + proto::kPayload - 1) / proto::kPayload;
+    const size_t count = (len + proto::kPayload - 1) / proto::kPayload;
     if (count > 0xFFFF) return;
-    uint32_t id = frameId_++;
+    const uint32_t id = frameId_++;
     uint8_t* pkt = packet_.data();
-    for (size_t i = 0; i < count; ++i) {
-        size_t off = i * proto::kPayload;
-        size_t n = std::min<size_t>(proto::kPayload, len - off);
-        pkt[0] = proto::kMagic0;
-        pkt[1] = proto::kMagic1;
-        pkt[2] = proto::kVideo;
-        pkt[3] = key ? proto::kFlagKey : 0;
-        proto::put32(pkt + 4, id);
-        proto::put16(pkt + 8, static_cast<uint16_t>(i));
-        proto::put16(pkt + 10, static_cast<uint16_t>(count));
-        proto::put16(pkt + 12, width);
-        proto::put16(pkt + 14, height);
-        memcpy(pkt + proto::kHeader, data + off, n);
-        sendRaw(pkt, static_cast<int>(proto::kHeader + n));
+    uint8_t* par = parity_.data();
+    uint8_t* parBody = par + proto::kHeader + 2;
+    const size_t groups = (count + proto::kFecGroup - 1) / proto::kFecGroup;
+
+    for (size_t g = 0; g < groups; ++g) {
+        const size_t first = g * proto::kFecGroup;
+        const size_t last = std::min(count, first + proto::kFecGroup);
+        memset(parBody, 0, proto::kPayload);
+        uint16_t lenXor = 0;
+
+        for (size_t i = first; i < last; ++i) {
+            const size_t off = i * proto::kPayload;
+            const size_t n = std::min<size_t>(proto::kPayload, len - off);
+            writeHeader(pkt, proto::kVideo, key, id, static_cast<uint16_t>(i), static_cast<uint16_t>(count), width,
+                        height);
+            memcpy(pkt + proto::kHeader, data + off, n);
+            for (size_t b = 0; b < n; ++b) parBody[b] ^= data[off + b];
+            lenXor ^= static_cast<uint16_t>(n);
+            pace(proto::kHeader + n);
+            sendRaw(pkt, static_cast<int>(proto::kHeader + n));
+        }
+
+        // Grup başına bir eşlik paketi: gruptaki tek kayıp alıcıda yeniden oluşturulur.
+        if (last - first >= 2) {
+            writeHeader(par, proto::kFec, key, id, static_cast<uint16_t>(g), static_cast<uint16_t>(count), width,
+                        height);
+            proto::put16(par + proto::kHeader, lenXor);
+            const size_t n = proto::kHeader + 2 + proto::kPayload;
+            pace(n);
+            sendRaw(par, static_cast<int>(n));
+        }
     }
 }
 

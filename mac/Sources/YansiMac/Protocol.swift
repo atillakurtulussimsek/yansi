@@ -9,6 +9,8 @@ enum Proto {
     static let magic1: UInt8 = 0x53  // 'S'
 
     static let tVideo: UInt8 = 0x01
+    static let tFec: UInt8 = 0x02
+    static let fecGroup = 10
     static let tIdrRequest: UInt8 = 0x10
     static let tKeepalive: UInt8 = 0x11
     static let tPing: UInt8 = 0x12
@@ -20,12 +22,12 @@ enum Proto {
     static let payloadSize = 1200
 
     static func writeVideoHeader(
-        _ p: UnsafeMutablePointer<UInt8>, key: Bool, frameId: UInt32,
+        _ p: UnsafeMutablePointer<UInt8>, type: UInt8 = tVideo, key: Bool, frameId: UInt32,
         fragment: UInt16, count: UInt16, width: UInt16, height: UInt16
     ) {
         p[0] = magic0
         p[1] = magic1
-        p[2] = tVideo
+        p[2] = type
         p[3] = key ? flagKey : 0
         p[4] = UInt8(truncatingIfNeeded: frameId >> 24)
         p[5] = UInt8(truncatingIfNeeded: frameId >> 16)

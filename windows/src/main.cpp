@@ -40,6 +40,7 @@ struct Options {
     bool list = false;
     bool software = false;
     bool stats = false;
+    double paceMbps = 250.0;
 };
 
 [[noreturn]] void usage(int code) {
@@ -53,6 +54,7 @@ struct Options {
         "  -f, --fps N        Kare hızı (varsayılan 60)\n"
         "  -b, --bitrate N    Bit hızı, Mbps (varsayılan 20)\n"
         "  -w, --width N      Çıkış genişliği (varsayılan: ekran, en fazla 1920)\n"
+        "      --pace N       Gönderim hızı sınırı, Mbps (varsayılan 250, 0 = sınırsız)\n"
         "      --software     Donanım kodlayıcıyı kullanma\n"
         "      --stats        Saniyede bir istatistik yaz\n");
     exit(code);
@@ -74,6 +76,7 @@ Options parse(int argc, char** argv) {
         else if (a == "-w" || a == "--width") o.width = atoi(next(i));
         else if (a == "-l" || a == "--list") o.list = true;
         else if (a == "--software") o.software = true;
+        else if (a == "--pace") o.paceMbps = std::max(0.0, atof(next(i)));
         else if (a == "--stats") o.stats = true;
         else if (a == "-h" || a == "--help") usage(0);
         else {
@@ -139,9 +142,17 @@ RunResult runPipeline(const Options& opt, FrameSender& sender, std::atomic<bool>
     printf("Yansıtılıyor: %dx%d → %dx%d @%d fps, %.0f Mbps, kodlayıcı: %s (%s)\n", cap.width(), cap.height(), ow,
            oh, opt.fps, opt.mbps, enc.name().empty() ? "?" : enc.name().c_str(),
            enc.hardware() ? "donanım" : "yazılım");
+    if (!enc.hardware()) {
+        printf(
+            "UYARI: Donanım kodlayıcı bulunamadı, yazılım kodlayıcı kullanılıyor; gecikme yüksek olur.\n"
+            "       Uzak masaüstü (RDP) oturumu veya sanal makinede ekran kartı kodlayıcısı yoktur.\n"
+            "       Ekran kartı sürücüsünün güncel olduğundan emin ol; gerekirse --width 1280 --fps 30 dene.\n");
+    }
     printf("Durdurmak için Ctrl+C.\n");
 
     const int64_t interval = 10000000LL / opt.fps;
+    const int64_t keyCooldown = 3000000;  // 300 ms: kayıp anında anahtar kare yağmurunu önle
+    int64_t lastKey = 0;
     int64_t nextDue = 0;
     bool dirty = true;
     bool forceKey = true;
@@ -154,6 +165,7 @@ RunResult runPipeline(const Options& opt, FrameSender& sender, std::atomic<bool>
             wait = remain > 0 ? static_cast<UINT>(remain / 10000) : 0;
         }
 
+        if (idrRequested.load()) wait = std::min<UINT>(wait, 10);
         int r = cap.acquire(wait);
         if (r < 0) {
             // Çözünürlük değişimi, UAC/kilit ekranı vb.
@@ -180,15 +192,17 @@ RunResult runPipeline(const Options& opt, FrameSender& sender, std::atomic<bool>
         }
         if (r == 1) dirty = true;
 
-        if (idrRequested.exchange(false)) {
+        now = now100ns();
+        if (idrRequested.load() && now - lastKey >= keyCooldown) {
+            idrRequested = false;
             forceKey = true;
             dirty = true;  // ekran durağan olsa da anahtar kare üret
         }
 
-        now = now100ns();
         if (dirty && now >= nextDue) {
             ID3D11Texture2D* nv12 = conv.convert();
             if (nv12 && enc.encode(nv12, now, forceKey)) {
+                if (forceKey) lastKey = now;
                 dirty = false;
                 forceKey = false;
                 nextDue = now + interval;
@@ -250,6 +264,7 @@ int main(int argc, char** argv) {
 
     FrameSender sender;
     if (!sender.open(ip, port)) return 1;
+    sender.setPacing(opt.paceMbps);
     printf("Hedef: %s\n", name.c_str());
 
     std::atomic<bool> idrRequested{false};

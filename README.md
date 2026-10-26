@@ -46,6 +46,7 @@ yansi-win.exe
 | `--width N` | Çıkış genişliği |
 | `--scale X` | (yalnız Mac) Nokta çözünürlüğüne göre ölçek; Retina keskinliği için `2` |
 | `--software` | (yalnız Windows) donanım kodlayıcıyı devre dışı bırak |
+| `--pace N` | Gönderim hızı sınırı, Mbps (varsayılan 250; `0` kapatır) |
 | `--stats` | Saniyede bir istatistik |
 
 Varsayılan çözünürlük: Mac'te ekranın nokta çözünürlüğü (ör. 14" MBP'de 1512×982), Windows'ta ekran genişliği en fazla 1920.
@@ -57,11 +58,17 @@ Varsayılan çözünürlük: Mac'te ekranın nokta çözünürlüğü (ör. 14" 
 - Yazı ağırlıklı ekranlarda bulanıklık varsa önce `--bitrate 30`, sonra çözünürlüğü artır (`--scale 1.5`).
 - Ölçüm: tablet istatistiğindeki *alım→ekran* süresi ağ sonrası kısımdır. Uçtan uca gecikmeyi görmek için bilgisayarda kronometre açıp ikisini aynı karede fotoğrafla.
 
+## Windows'ta takılma olursa
+
+- Başlangıçta yazan satıra bak: `kodlayıcı: ... (donanım)` olmalı. `yazılım` yazıyorsa ekran kartı kodlayıcısı kullanılamıyor (RDP oturumu, sanal makine, eski sürücü).
+- Wi-Fi kartının güç tasarrufunu kapat: Aygıt Yöneticisi → Ağ bağdaştırıcıları → kablosuz kart → Gelişmiş/Güç Yönetimi.
+- Hâlâ kayıp varsa `--pace 150` dene; tablet istatistiğinde *FEC kurtarma* ve *IDR isteği* sayıları ağ kaybını gösterir.
+
 ## Bilinen sınırlar (v0.1)
 
 - Yalnızca yansıtma; dokunmatik kontrol ve ses yok.
 - Windows'ta döndürülmüş (dikey) ekranlar ve HDR açık ekranlar henüz düzgün desteklenmiyor.
-- Paketleme sırasında hata düzeltme (FEC) yok; yoğun kayıplı ağda donmalar olabilir.
+- FEC her 10 paketten yalnızca 1 kaybı kurtarır; çok kayıplı ağda yine kısa donmalar olabilir.
 
 ## Lisans
 

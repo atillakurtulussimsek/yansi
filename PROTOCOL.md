@@ -27,6 +27,23 @@ Tüm çok baytlı sayılar big-endian.
 
 Son parça hariç her parçanın yükü tam **1200 bayt**. Alıcı parçayı `parça_no * 1200` konumuna yazar.
 
+## FEC paketi (gönderici → alıcı)
+
+Kareler 10'ar veri paketlik gruplara ayrılır; 2 veya daha fazla paketli her grubun ardından bir eşlik paketi gelir.
+
+```
+0..15  video başlığıyla aynı; tip = 0x02, parça no = grup no
+16 u16 gruptaki yük uzunluklarının XOR'u
+18 ... 1200 bayt: gruptaki yüklerin XOR'u (kısa yükler sıfırla tamamlanır)
+```
+
+Gruptan tek paket kaybolursa alıcı onu XOR ile yeniden oluşturur. Eski alıcılar tip 0x02'yi yok sayar.
+
+## Gönderim hızı
+
+Göndericiler paketleri varsayılan 250 Mbps'e yayar (`--pace`). Kablolu bilgisayarın büyük kareleri hat hızında
+patlatması Wi-Fi erişim noktasında kayba yol açıyordu. Gönderici kayıp sonrası anahtar kareyi en sık 300 ms'de bir üretir.
+
 ## Kontrol paketleri (alıcı → gönderici)
 
 Başlık: `'Y' 'S' tip 0x00`, ardından yük.
@@ -42,7 +59,7 @@ Alıcı 500 ms'de bir keepalive + ping gönderir. Gönderici her ping'e pong dö
 
 ## Kayıp yönetimi
 
-Bir kare eksik tamamlanırsa veya kare numarasında boşluk varsa alıcı sonraki P-karelerini atar, IDR ister (en fazla 100 ms'de bir) ve ilk anahtar karede çözmeye devam eder. Bozuk görüntü göstermek yerine kısa bir donma tercih edilir.
+Bir kare eksik tamamlanırsa veya kare numarasında boşluk varsa alıcı sonraki P-karelerini atar, IDR ister (en fazla 250 ms'de bir) ve ilk anahtar karede çözmeye devam eder. Bozuk görüntü göstermek yerine kısa bir donma tercih edilir.
 
 ## Keşif
 
