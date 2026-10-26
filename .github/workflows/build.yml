@@ -22,7 +22,7 @@ jobs:
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: ayna-android
+          name: yansi-android
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
   macos:
@@ -35,12 +35,12 @@ jobs:
       - name: Paketle
         run: |
           mkdir -p out
-          cp mac/.build/release/ayna-mac out/
-          cd out && tar czf ayna-mac.tar.gz ayna-mac
+          cp mac/.build/release/yansi-mac out/
+          cd out && tar czf yansi-mac.tar.gz yansi-mac
       - uses: actions/upload-artifact@v4
         with:
-          name: ayna-mac
-          path: out/ayna-mac.tar.gz
+          name: yansi-mac
+          path: out/yansi-mac.tar.gz
 
   windows:
     runs-on: windows-latest
@@ -52,5 +52,5 @@ jobs:
         run: cmake --build build --config Release
       - uses: actions/upload-artifact@v4
         with:
-          name: ayna-win
-          path: build/Release/ayna-win.exe
+          name: yansi-win
+          path: build/Release/yansi-win.exe

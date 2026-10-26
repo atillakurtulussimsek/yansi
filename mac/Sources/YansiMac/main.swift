@@ -45,9 +45,9 @@ struct Options {
 func usage(_ code: Int32) -> Never {
     print(
         """
-        ayna-mac — Mac ekranını yerel ağdaki Android cihaza yansıtır
+        yansi-mac — Mac ekranını yerel ağdaki Android cihaza yansıtır
 
-        Kullanım: ayna-mac [seçenekler]
+        Kullanım: yansi-mac [seçenekler]
 
           -t, --to IP        Alıcının IP'si (verilmezse ağda otomatik aranır)
           -p, --port N       Alıcı portu (varsayılan 47800)
@@ -68,7 +68,7 @@ let options = Options.parse(CommandLine.arguments)
 // App Nap ve zamanlayıcı birleştirmesi gecikme yaratmasın.
 let activity = ProcessInfo.processInfo.beginActivity(
     options: [.userInitiated, .latencyCritical, .idleSystemSleepDisabled],
-    reason: "Ayna ekran yansıtma")
+    reason: "Yansı ekran yansıtma")
 
 if !CGPreflightScreenCaptureAccess() {
     _ = CGRequestScreenCaptureAccess()

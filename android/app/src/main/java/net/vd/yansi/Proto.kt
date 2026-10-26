@@ -1,12 +1,12 @@
-package net.vd.ayna
+package net.vd.yansi
 
 /** Protokol sabitleri — ayrıntı için PROTOCOL.md. */
 object Proto {
     const val VIDEO_PORT = 47800
     const val DISCOVERY_PORT = 47801
 
-    const val MAGIC0: Byte = 0x41 // 'A'
-    const val MAGIC1: Byte = 0x59 // 'Y'
+    const val MAGIC0: Byte = 0x59 // 'Y'
+    const val MAGIC1: Byte = 0x53 // 'S'
 
     const val T_VIDEO = 0x01
     const val T_IDR_REQ = 0x10

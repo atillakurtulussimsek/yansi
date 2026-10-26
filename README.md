@@ -1,4 +1,4 @@
-# Ayna
+# Yansı
 
 Mac veya Windows ekranını yerel ağdaki Android cihaza düşük gecikmeyle yansıtır.
 
@@ -13,7 +13,7 @@ Protokol: [PROTOCOL.md](PROTOCOL.md).
 
 ## Kurulum
 
-Derlenmiş dosyalar her push'ta GitHub Actions → **Artifacts** altında çıkar: `ayna-android` (APK), `ayna-mac`, `ayna-win`.
+Derlenmiş dosyalar her push'ta GitHub Actions → **Artifacts** altında çıkar: `yansi-android` (APK), `yansi-mac`, `yansi-win`.
 
 ### Android
 APK'yı kur, uygulamayı aç. Ekranda tabletin IP'si görünür; uygulama açık kaldığı sürece bilgisayar onu bulabilir.
@@ -21,17 +21,17 @@ Ekrana dokununca istatistikler (fps, bit hızı, alım→ekran süresi, RTT) aç
 
 ### Mac
 ```bash
-tar xzf ayna-mac.tar.gz
-xattr -d com.apple.quarantine ayna-mac   # GitHub'dan indirildiyse
-./ayna-mac
+tar xzf yansi-mac.tar.gz
+xattr -d com.apple.quarantine yansi-mac   # GitHub'dan indirildiyse
+./yansi-mac
 ```
-Ya da kaynaktan: `cd mac && swift build -c release && .build/release/ayna-mac`
+Ya da kaynaktan: `cd mac && swift build -c release && .build/release/yansi-mac`
 
 İlk çalıştırmada **Ekran Kaydı** izni ister: Sistem Ayarları → Gizlilik ve Güvenlik → Ekran ve Sistem Ses Kaydı → terminal uygulamasını aç, terminali yeniden başlat.
 
 ### Windows
 ```
-ayna-win.exe
+yansi-win.exe
 ```
 İlk çalıştırmada Windows Güvenlik Duvarı sorarsa **Özel ağlar** için izin ver (otomatik keşif ve IDR istekleri için gerekli).
 

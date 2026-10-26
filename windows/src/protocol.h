@@ -7,8 +7,8 @@ namespace proto {
 constexpr uint16_t kVideoPort = 47800;
 constexpr uint16_t kDiscoveryPort = 47801;
 
-constexpr uint8_t kMagic0 = 0x41;  // 'A'
-constexpr uint8_t kMagic1 = 0x59;  // 'Y'
+constexpr uint8_t kMagic0 = 0x59;  // 'Y'
+constexpr uint8_t kMagic1 = 0x53;  // 'S'
 
 constexpr uint8_t kVideo = 0x01;
 constexpr uint8_t kIdrRequest = 0x10;

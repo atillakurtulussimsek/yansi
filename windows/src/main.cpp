@@ -1,4 +1,4 @@
-// ayna-win — Windows ekranını yerel ağdaki Android cihaza yansıtır.
+// yansi-win — Windows ekranını yerel ağdaki Android cihaza yansıtır.
 #include "net.h"
 // net.h winsock2.h'yi windows.h'den önce getirmeli
 #include <windows.h>
@@ -44,8 +44,8 @@ struct Options {
 
 [[noreturn]] void usage(int code) {
     printf(
-        "ayna-win — Windows ekranını yerel ağdaki Android cihaza yansıtır\n\n"
-        "Kullanım: ayna-win [seçenekler]\n\n"
+        "yansi-win — Windows ekranını yerel ağdaki Android cihaza yansıtır\n\n"
+        "Kullanım: yansi-win [seçenekler]\n\n"
         "  -t, --to IP        Alıcının IP'si (verilmezse ağda otomatik aranır)\n"
         "  -p, --port N       Alıcı portu (varsayılan 47800)\n"
         "  -d, --display N    Ekran numarası (varsayılan 0)\n"
@@ -230,12 +230,12 @@ int main(int argc, char** argv) {
     uint16_t port = opt.port;
     std::string name = ip;
     if (ip.empty()) {
-        printf("Alıcı aranıyor (Android'de Ayna açık olmalı)…\n");
+        printf("Alıcı aranıyor (Android'de Yansı açık olmalı)…\n");
         auto found = discoverReceivers(3000);
         if (found.empty()) {
             fprintf(stderr,
-                    "Alıcı bulunamadı. Tablette Ayna'yı aç, aynı ağda olduğundan emin ol\n"
-                    "(Windows Güvenlik Duvarı izni de gerekebilir) ya da IP ver: ayna-win --to 192.168.1.50\n");
+                    "Alıcı bulunamadı. Tablette Yansı'yı aç, aynı ağda olduğundan emin ol\n"
+                    "(Windows Güvenlik Duvarı izni de gerekebilir) ya da IP ver: yansi-win --to 192.168.1.50\n");
             return 1;
         }
         if (found.size() > 1) {

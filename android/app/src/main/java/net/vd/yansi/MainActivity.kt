@@ -1,4 +1,4 @@
-package net.vd.ayna
+package net.vd.yansi
 
 import android.app.Activity
 import android.content.Context
@@ -164,10 +164,10 @@ class MainActivity : Activity(), SurfaceHolder.Callback, StreamClient.Listener {
         val ipText = if (ips.isEmpty()) "Wi-Fi bağlantısı yok" else ips.joinToString("\n")
         val first = ips.firstOrNull() ?: "<tablet-ip>"
         info.text = buildString {
-            append("Ayna hazır\n\n")
+            append("Yansı hazır\n\n")
             append(ipText)
             append("\n\nBilgisayarda çalıştır:\n")
-            append("ayna-mac  ya da  ayna-win.exe\n")
+            append("yansi-mac  ya da  yansi-win.exe\n")
             append("(otomatik bulamazsa: --to $first)")
         }
         info.visibility = View.VISIBLE
@@ -226,7 +226,7 @@ class MainActivity : Activity(), SurfaceHolder.Callback, StreamClient.Listener {
             } else {
                 WifiManager.WIFI_MODE_FULL_HIGH_PERF
             }
-            wifiLock = wm.createWifiLock(mode, "ayna").apply { setReferenceCounted(false) }
+            wifiLock = wm.createWifiLock(mode, "yansi").apply { setReferenceCounted(false) }
         }
         wifiLock?.let { if (!it.isHeld) it.acquire() }
     }

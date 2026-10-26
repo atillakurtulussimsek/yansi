@@ -1,4 +1,4 @@
-package net.vd.ayna
+package net.vd.yansi
 
 import android.os.Process
 import android.os.SystemClock
@@ -82,9 +82,9 @@ class StreamClient(
             frames.incrementAndGet()
         }
         running = true
-        spawn("ayna-rx", Process.THREAD_PRIORITY_URGENT_DISPLAY) { rxLoop() }
-        spawn("ayna-ctl", Process.THREAD_PRIORITY_DEFAULT) { controlLoop() }
-        spawn("ayna-beacon", Process.THREAD_PRIORITY_BACKGROUND) { beaconLoop() }
+        spawn("yansi-rx", Process.THREAD_PRIORITY_URGENT_DISPLAY) { rxLoop() }
+        spawn("yansi-ctl", Process.THREAD_PRIORITY_DEFAULT) { controlLoop() }
+        spawn("yansi-beacon", Process.THREAD_PRIORITY_BACKGROUND) { beaconLoop() }
     }
 
     fun stop() {
@@ -292,7 +292,7 @@ class StreamClient(
         } catch (_: Exception) {
             return
         }
-        val msg = "AYNA1|$deviceName|${Proto.VIDEO_PORT}".toByteArray(Charsets.UTF_8)
+        val msg = "YANSI1|$deviceName|${Proto.VIDEO_PORT}".toByteArray(Charsets.UTF_8)
         while (running) {
             for (addr in broadcastAddresses()) {
                 try {

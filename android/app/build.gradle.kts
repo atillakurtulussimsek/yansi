@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "net.vd.ayna"
+    namespace = "net.vd.yansi"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "net.vd.ayna"
+        applicationId = "net.vd.yansi"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

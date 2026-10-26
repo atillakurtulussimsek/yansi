@@ -1,4 +1,4 @@
-# Ayna protokolü (v1)
+# Yansı protokolü (v1)
 
 Tamamen UDP. Alıcı (Android) sunucu gibi davranır; gönderici (Mac/Windows) ona doğrudan video yollar.
 
@@ -13,8 +13,8 @@ Tüm çok baytlı sayılar big-endian.
 ## Video paketi (gönderici → alıcı)
 
 ```
-0  u8  'A' (0x41)
-1  u8  'Y' (0x59)
+0  u8  'Y' (0x59)
+1  u8  'S' (0x53)
 2  u8  tip = 0x01
 3  u8  bayraklar: bit0 = anahtar kare (IDR, SPS/PPS içerir)
 4  u32 kare no (her karede +1, taşınca sarar)
@@ -29,7 +29,7 @@ Son parça hariç her parçanın yükü tam **1200 bayt**. Alıcı parçayı `pa
 
 ## Kontrol paketleri (alıcı → gönderici)
 
-Başlık: `'A' 'Y' tip 0x00`, ardından yük.
+Başlık: `'Y' 'S' tip 0x00`, ardından yük.
 
 | Tip  | Ad          | Yük                                  |
 |------|-------------|--------------------------------------|
@@ -46,4 +46,4 @@ Bir kare eksik tamamlanırsa veya kare numarasında boşluk varsa alıcı sonrak
 
 ## Keşif
 
-Alıcı `AYNA1|<cihaz adı>|<video portu>` metnini 47801'e yayınlar. Gönderici `--to` verilmezse 3 sn dinler ve bulduğu ilk alıcıya bağlanır.
+Alıcı `YANSI1|<cihaz adı>|<video portu>` metnini 47801'e yayınlar. Gönderici `--to` verilmezse 3 sn dinler ve bulduğu ilk alıcıya bağlanır.

@@ -64,11 +64,11 @@ std::vector<FoundReceiver> discoverReceivers(int ms) {
         if (n <= 0) continue;
         buf[n] = 0;
         std::string text(buf, n);
-        // AYNA1|ad|port
+        // YANSI1|ad|port
         size_t p1 = text.find('|');
         size_t p2 = p1 == std::string::npos ? std::string::npos : text.find('|', p1 + 1);
         if (p1 == std::string::npos || p2 == std::string::npos) continue;
-        if (text.substr(0, p1) != "AYNA1") continue;
+        if (text.substr(0, p1) != "YANSI1") continue;
 
         char ip[INET_ADDRSTRLEN] = {};
         inet_ntop(AF_INET, &from.sin_addr, ip, sizeof ip);

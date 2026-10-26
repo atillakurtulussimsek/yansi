@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "AynaMac",
+    name: "YansiMac",
     platforms: [.macOS(.v13)],
     targets: [
         .executableTarget(
-            name: "ayna-mac",
-            path: "Sources/AynaMac",
+            name: "yansi-mac",
+            path: "Sources/YansiMac",
             linkerSettings: [
                 .linkedFramework("ScreenCaptureKit"),
                 .linkedFramework("VideoToolbox"),

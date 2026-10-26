@@ -1,4 +1,4 @@
-package net.vd.ayna
+package net.vd.yansi
 
 import android.media.MediaCodec
 import android.media.MediaFormat
@@ -111,7 +111,7 @@ class VideoDecoder(private val surface: Surface) {
         curH = h
         curSps = ps.sps
         outRunning = true
-        outThread = Thread({ outputLoop(c) }, "ayna-dec-out").also { it.start() }
+        outThread = Thread({ outputLoop(c) }, "yansi-dec-out").also { it.start() }
         Log.i(TAG, "çözücü hazır: ${c.name} ${w}x$h")
         return true
     }
@@ -188,7 +188,7 @@ class VideoDecoder(private val surface: Surface) {
     }
 
     companion object {
-        private const val TAG = "AynaDecoder"
+        private const val TAG = "YansiDecoder"
         private const val RING = 64
         private val START = byteArrayOf(0, 0, 0, 1)
     }

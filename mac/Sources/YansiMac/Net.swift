@@ -51,7 +51,7 @@ struct FoundReceiver {
     let port: UInt16
 }
 
-/// Android alıcısının yayınladığı `AYNA1|ad|port` sinyallerini dinler.
+/// Android alıcısının yayınladığı `YANSI1|ad|port` sinyallerini dinler.
 func discoverReceivers(seconds: Double) -> [FoundReceiver] {
     let fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
     guard fd >= 0 else { return [] }
@@ -89,7 +89,7 @@ func discoverReceivers(seconds: Double) -> [FoundReceiver] {
         let (n, from) = buf.withUnsafeMutableBytes { receiveFrom(fd, $0.baseAddress!, $0.count) }
         guard n > 0, let text = String(bytes: buf[0..<n], encoding: .utf8) else { continue }
         let parts = text.split(separator: "|", omittingEmptySubsequences: false)
-        guard parts.count >= 3, parts[0] == "AYNA1", let port = UInt16(parts[2]) else { continue }
+        guard parts.count >= 3, parts[0] == "YANSI1", let port = UInt16(parts[2]) else { continue }
         let ip = ipString(from)
         if found[ip] == nil {
             order.append(ip)
@@ -114,10 +114,10 @@ final class FrameSender {
     var onReceiver: ((String) -> Void)?
 
     init(ip: String, port: UInt16) throws {
-        guard let d = makeAddress(ip, port) else { throw AynaError("Geçersiz IP adresi: \(ip)") }
+        guard let d = makeAddress(ip, port) else { throw YansiError("Geçersiz IP adresi: \(ip)") }
         dest = d
         fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
-        guard fd >= 0 else { throw AynaError("UDP soketi açılamadı") }
+        guard fd >= 0 else { throw YansiError("UDP soketi açılamadı") }
 
         var sndbuf: Int32 = 4 << 20
         setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sndbuf, socklen_t(MemoryLayout<Int32>.size))
@@ -168,7 +168,7 @@ final class FrameSender {
     func startControl() {
         setReceiveTimeout(fd, ms: 500)
         let t = Thread { [weak self] in self?.controlLoop() }
-        t.name = "ayna-control"
+        t.name = "yansi-control"
         t.qualityOfService = .userInteractive
         t.start()
     }

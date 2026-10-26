@@ -36,7 +36,7 @@ final class SenderApp: NSObject, SCStreamOutput, SCStreamDelegate {
     private var stream: SCStream?
     private var encoder: H264Encoder?
     private var sender: FrameSender?
-    private let queue = DispatchQueue(label: "ayna.capture", qos: .userInteractive)
+    private let queue = DispatchQueue(label: "yansi.capture", qos: .userInteractive)
     private var statsTimer: DispatchSourceTimer?
     private let counter = Counter()
 
@@ -60,7 +60,7 @@ final class SenderApp: NSObject, SCStreamOutput, SCStreamDelegate {
             exit(0)
         }
         guard displays.indices.contains(opts.display) else {
-            throw AynaError("Ekran bulunamadı: \(opts.display). Listelemek için: ayna-mac --list")
+            throw YansiError("Ekran bulunamadı: \(opts.display). Listelemek için: yansi-mac --list")
         }
         let display = displays[opts.display]
 
@@ -123,11 +123,11 @@ final class SenderApp: NSObject, SCStreamOutput, SCStreamDelegate {
         if let ip = opts.to {
             return FoundReceiver(ip: ip, name: ip, port: opts.port)
         }
-        print("Alıcı aranıyor (Android'de Ayna açık olmalı)…")
+        print("Alıcı aranıyor (Android'de Yansı açık olmalı)…")
         let found = discoverReceivers(seconds: 3)
         guard let first = found.first else {
-            throw AynaError(
-                "Alıcı bulunamadı. Tablette Ayna'yı aç ve aynı ağda olduğundan emin ol, ya da IP ver: ayna-mac --to 192.168.1.50"
+            throw YansiError(
+                "Alıcı bulunamadı. Tablette Yansı'yı aç ve aynı ağda olduğundan emin ol, ya da IP ver: yansi-mac --to 192.168.1.50"
             )
         }
         if found.count > 1 {

@@ -38,7 +38,7 @@ final class H264Encoder {
             if status == noErr, created != nil { break }
         }
         guard status == noErr, let s = created else {
-            throw AynaError("VideoToolbox kodlayıcı oluşturulamadı (OSStatus \(status))")
+            throw YansiError("VideoToolbox kodlayıcı oluşturulamadı (OSStatus \(status))")
         }
         session = s
 

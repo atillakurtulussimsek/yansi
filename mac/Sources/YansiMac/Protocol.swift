@@ -5,8 +5,8 @@ enum Proto {
     static let videoPort: UInt16 = 47800
     static let discoveryPort: UInt16 = 47801
 
-    static let magic0: UInt8 = 0x41  // 'A'
-    static let magic1: UInt8 = 0x59  // 'Y'
+    static let magic0: UInt8 = 0x59  // 'Y'
+    static let magic1: UInt8 = 0x53  // 'S'
 
     static let tVideo: UInt8 = 0x01
     static let tIdrRequest: UInt8 = 0x10
@@ -42,7 +42,7 @@ enum Proto {
     }
 }
 
-struct AynaError: Error, CustomStringConvertible {
+struct YansiError: Error, CustomStringConvertible {
     let description: String
     init(_ description: String) { self.description = description }
 }
