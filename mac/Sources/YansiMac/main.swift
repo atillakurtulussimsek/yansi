@@ -20,15 +20,25 @@ struct Options {
             guard i < args.count else { usage(1) }
             return args[i]
         }
+        func nextInt() -> Int {
+            guard let v = Int(next()) else { usage(1) }
+            return v
+        }
+        func nextDouble() -> Double {
+            guard let v = Double(next()) else { usage(1) }
+            return v
+        }
         while i < args.count {
             switch args[i] {
             case "-t", "--to": o.to = next()
-            case "-p", "--port": o.port = UInt16(next()) ?? usage(1)
-            case "-d", "--display": o.display = Int(next()) ?? usage(1)
-            case "-f", "--fps": o.fps = max(1, min(240, Int(next()) ?? usage(1)))
-            case "-b", "--bitrate": o.bitrateMbps = max(1, Double(next()) ?? usage(1))
-            case "-s", "--scale": o.scale = max(0.25, min(4, Double(next()) ?? usage(1)))
-            case "-w", "--width": o.width = Int(next()) ?? usage(1)
+            case "-p", "--port":
+                guard let p = UInt16(next()) else { usage(1) }
+                o.port = p
+            case "-d", "--display": o.display = nextInt()
+            case "-f", "--fps": o.fps = max(1, min(240, nextInt()))
+            case "-b", "--bitrate": o.bitrateMbps = max(1, nextDouble())
+            case "-s", "--scale": o.scale = max(0.25, min(4, nextDouble()))
+            case "-w", "--width": o.width = nextInt()
             case "-l", "--list": o.listDisplays = true
             case "--stats": o.stats = true
             case "-h", "--help": usage(0)
